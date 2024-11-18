@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000">
+    <!-- Stacked rectangles using HSL colors -->
+    <rect x="200" y="100" width="600" height="120" fill="hsl(120, 60%, 50%)" rx="5"/>
+    <rect x="200" y="240" width="600" height="120" fill="hsl(96, 60%, 50%)" rx="5"/>
+    <rect x="200" y="380" width="600" height="120" fill="hsl(72, 70%, 50%)" rx="5"/>
+    <rect x="200" y="520" width="600" height="120" fill="hsl(48, 70%, 50%)" rx="5"/>
+    <rect x="200" y="660" width="600" height="120" fill="hsl(24, 66%, 50%)" rx="5"/>
+    <rect x="200" y="800" width="600" height="120" fill="hsl(0, 60%, 50%)" rx="5"/>
+</svg>

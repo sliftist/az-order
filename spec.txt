@@ -1,0 +1,26 @@
+todonext
+Amazon Order History
+    - Nicer item replace, where we keep the UI as much as possible, and only insert new UI
+    
+    - Infinite scroll, loading more once we near the bottom
+        - But at the start, always load 7 pages, so we can find all undelivered
+
+    - Replace time dropdown and show our own order count, based on what we're showing
+        - `132 orders since 2022 January 1`
+
+    - Show active state via the extension icon
+    - Support toggling on/off
+        - Via injected switch + clicking the extension
+
+    - Switch to show undelivered + within the last 24 hours in reverse order (which can be useful to know if any packages are ready)
+
+    - Icons for different views
+        - list
+        - grid
+        - grid tiny (hide some buttons and shrink the box max-width, so we can see a lot of items at once)
+
+    - Remove "ship to" text, because it's broken anyways
+
+    - Multi-language support
+        - Multi-language date parsing
+        - language specific text in UI

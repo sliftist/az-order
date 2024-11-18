@@ -1,0 +1,31 @@
+{
+    "name": "ext-tabs",
+    "version": "0.2.0",
+    "main": "index.js",
+    "license": "MIT",
+    "homepage": "https://github.com/sliftist/ext-tabs",
+    "scripts": {
+        "build": "typenode ./build.ts",
+        "pac": "typenode ./pack.ts",
+        "watch": "typenode ./watch.ts",
+        "create-icons": "typenode ./createIcons.ts"
+    },
+    "devDependencies": {
+        "debugbreak": "^0.9.9",
+        "typedev": "^0.1.1"
+    },
+    "dependencies": {
+        "@types/adm-zip": "^0.5.6",
+        "@types/chrome": "^0.0.277",
+        "adm-zip": "^0.5.16",
+        "mobx": "^6.13.3",
+        "preact": "^10.24.2",
+        "socket-function": "^0.22.0",
+        "typenode": "^5.4.4",
+        "typesafecss": "^0.7.2",
+        "ws": "^8.18.0"
+    },
+    "optionalDependencies": {
+        "convert-svg-to-png": "0.5.0"
+    }
+}
