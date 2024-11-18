@@ -1,6 +1,6 @@
 # Amazing Re Order (AKA Amazon Order Page 2.0)
 
-Re-order amazon orders to be in delivery date order.
+Re-order amazon orders in delivery date order.
 
 Also arrange in a grid, and load multiple pages at once.
 

@@ -1,7 +1,7 @@
 todonext
 Amazon Order History
     - Nicer item replace, where we keep the UI as much as possible, and only insert new UI
-    
+
     - Infinite scroll, loading more once we near the bottom
         - But at the start, always load 7 pages, so we can find all undelivered
 
@@ -24,3 +24,9 @@ Amazon Order History
     - Multi-language support
         - Multi-language date parsing
         - language specific text in UI
+
+
+Sanitize page for screenshot:
+
+Array.from(document.querySelectorAll(".yohtmlc-order-id")).forEach(x => x.innerHTML = "123-4567890-1234567");
+document.querySelector("#nav-link-accountList-nav-line-1").innerHTML = "Hello, Sliftist";
