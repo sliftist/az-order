@@ -1,8 +1,8 @@
 {
     "name": "Amazing Re Order",
-    "version": "0.1.0",
-    "description": "Reorder order pages. Also shows more orders per page.",
-    "homepage_url": "https://github.com",
+    "version": "0.1.2",
+    "description": "Re-order amazon orders by delivery date.",
+    "homepage_url": "https://github.com/sliftist/az-order",
     "manifest_version": 3,
     "icons": {
         "16": "icon16.png",

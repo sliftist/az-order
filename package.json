@@ -1,9 +1,10 @@
 {
-    "name": "ext-tabs",
-    "version": "0.2.0",
+    "name": "az-order",
+    "note": "DON'T CHANGE THIS! CHANGE THE VERSION IN manifest.json",
+    "version": "0.0.1",
     "main": "index.js",
     "license": "MIT",
-    "homepage": "https://github.com/sliftist/ext-tabs",
+    "homepage": "https://github.com/sliftist/az-order",
     "scripts": {
         "build": "typenode ./build.ts",
         "pac": "typenode ./pack.ts",
