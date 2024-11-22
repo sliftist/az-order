@@ -1,7 +1,5 @@
 todonext
 Amazon Order History
-    - Nicer item replace, where we keep the UI as much as possible, and only insert new UI
-
     - Infinite scroll, loading more once we near the bottom
         - But at the start, always load 7 pages, so we can find all undelivered
 
@@ -24,6 +22,11 @@ Amazon Order History
     - Multi-language support
         - Multi-language date parsing
         - language specific text in UI
+
+    - SiegeClientSideDecryption support / client side rendering
+        - Add html to invisible documents (maybe offscreeen, maybe iframes)
+        - This is important in case `csd-key=disabled` support is ever dropped, and clients are forced to use csd.
+        - This also makes the code a lot more resilient to amazon changes
 
 
 Sanitize page for screenshot:

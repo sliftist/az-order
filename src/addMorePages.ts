@@ -40,6 +40,9 @@ export async function addMorePages() {
     style.textContent = betterStyles;
     document.head.appendChild(style);
 
+    // Disable CSD, otherwise the orders are too difficult to parse
+    document.cookie = "csd-key=disabled; path=/; secure; SameSite=Strict";
+
     let firstOrderCard = document.querySelector(".order-card.js-order-card");
     anchor = firstOrderCard?.previousSibling as any;
     if (!anchor) return;
@@ -105,12 +108,11 @@ function rerenderItems() {
             if (shipmentNode) {
                 shipmentNode.setAttribute("style", "display: flex; align-items: center; ");
                 let deliveryTime = getDeliveryDate(item);
-                let daysUntilDelivery = Math.round((deliveryTime - Date.now()) / (1000 * 60 * 60 * 24));
+                let daysExact = (deliveryTime - Date.now()) / (1000 * 60 * 60 * 24);
                 let newUI = document.createElement("span");
                 newUI.className = "a-size-mini";
-                newUI.textContent = `(${daysUntilDelivery} day${daysUntilDelivery === 1 ? "" : "s"})`;
+                newUI.textContent = `(${daysExact.toFixed(1)} days)`;
                 newUI.title = new Date(deliveryTime).toLocaleString();
-                newUI.title = "wtf " + ((deliveryTime - Date.now()) / (1000 * 60 * 60 * 24));
                 newUI.setAttribute("style", "margin-left: 10px;");
                 shipmentNode.appendChild(newUI);
             }
@@ -129,23 +131,85 @@ function rerenderItems() {
         return item;
     });
 
+    let flatIds = allItems.map(getOrderNumber);
+    let newIds = new Set(flatIds);
+    let existingOrderCards = Array.from(document.querySelectorAll(".order-card.js-order-card"));
+    for (let card of existingOrderCards) {
+        let id = getOrderNumber(card.outerHTML);
+        if (!newIds.has(id)) {
+            card.remove();
+        } else {
+            newIds.delete(id);
+        }
+    }
 
-    // Remove all order cards
-    document.querySelectorAll(".order-card.js-order-card").forEach(card => card.remove());
-    // Turn allItems into a document fragment
-    let fragment = document.createDocumentFragment();
-    allItems.forEach(item => {
+
+    let curAnchor = Array.from(document.querySelectorAll(".order-card.js-order-card")).at(-1) || anchor;
+
+    // Append new items
+    for (let item of allItems) {
+        if (!newIds.has(getOrderNumber(item))) continue;
         let div = document.createElement("div");
         div.innerHTML = item;
-        for (let child of Array.from(div.children)) {
-            fragment.appendChild(child);
+        div = div.children[0] as any;
+        curAnchor.after(div);
+        curAnchor = div;
+    }
+
+    // Reorder orders
+    {
+        let idToIndex = new Map(flatIds.map((id, index) => [id, index]));
+
+        let orderElements = Array.from(document.querySelectorAll(".order-card.js-order-card"));
+        if (orderElements.length === 0) return;
+        let elements = orderElements.map(x => [getOrderNumber(x.outerHTML) || "", x] as const);
+
+        let referenceOrder: (readonly [string, Element])[] = [];
+        referenceOrder.push(elements.shift()!);
+
+        let unordered: (readonly [string, Element])[] = [];
+        while (true) {
+            let next = elements.shift();
+            if (!next) break;
+            let prevIndex = idToIndex.get(referenceOrder.at(-1)![0])!;
+            let newIndex = idToIndex.get(next[0])!;
+            if (newIndex < prevIndex) {
+                console.log(`Fix sort order for item: ${next[0]}, ${newIndex} < ${prevIndex}`);
+                unordered.push(next);
+            } else {
+                referenceOrder.push(next);
+            }
         }
-    });
-    anchor.after(fragment);
+
+        // Remaining element are not in order
+        while (unordered) {
+            let next = unordered.shift();
+            if (!next) break;
+            let ourIndex = idToIndex.get(next[0])!;
+            let minDist = Infinity;
+            let bestIndex = -1;
+            for (let i = 0; i < referenceOrder.length; i++) {
+                let dist = Math.abs(idToIndex.get(referenceOrder[i][0])! - ourIndex);
+                if (dist < minDist) {
+                    minDist = dist;
+                    bestIndex = i;
+                }
+            }
+            let refObj = referenceOrder[bestIndex];
+            let refIndex = idToIndex.get(refObj[0])!;
+            if (refIndex < ourIndex) {
+                bestIndex++;
+                refObj[1].after(next[1]);
+            } else {
+                refObj[1].before(next[1]);
+            }
+            referenceOrder.splice(bestIndex, 0, next);
+        }
+    }
 }
 
 async function getHTML(period: string, index: number): Promise<string | undefined> {
-    let html = await fetch(`/your-orders/orders?timeFilter=${period}&startIndex=${index * 10}&ref_=amazing-re-order-extension`).then(res => res.text());
+    let html = await fetch(`/your-orders/orders?timeFilter=${period}&startIndex=${index * 10}&ref_=amazing-re-order-extension&disableCsd`).then(res => res.text());
 
     let dom = new DOMParser().parseFromString(html, "text/html");
 
@@ -158,13 +222,20 @@ async function getHTML(period: string, index: number): Promise<string | undefine
 
 function splitItemIntoShipments(item: string): string[] {
     const PLACEHOLDER = "PLACEHOLDER-274e7d79-a21b-4689-8dd1-53957efd2f60";
+    const ORDER_PLACEHOLDER = "ORDER_PLACEHOLDER-a2a5aa82-7489-4c60-b980-2e3db954d28b";
     let dom = new DOMParser().parseFromString(item, "text/html");
     let boxHolder = dom.querySelector(".a-box-group");
     let shipments: string[] = [];
+    let orderHolder = boxHolder?.querySelector(".yohtmlc-order-id");
+    if (orderHolder && orderHolder.children.length >= 2) {
+        orderHolder.children[1].innerHTML += ` ${ORDER_PLACEHOLDER}`;
+    }
     for (let child of Array.from(boxHolder?.children || [])) {
         if (child.classList.contains("delivery-box") || child.classList.contains("shipment")) {
+            getOrderNumber(child.outerHTML);
             shipments.push(child.outerHTML);
             if (shipments.length === 1) {
+                // Add a placeholder for the first shipment
                 child.replaceWith(document.createTextNode(PLACEHOLDER));
             } else {
                 child.remove();
@@ -173,7 +244,11 @@ function splitItemIntoShipments(item: string): string[] {
     }
 
     let structureHTML = dom.body.innerHTML;
-    return shipments.map(shipment => structureHTML.replace(PLACEHOLDER, shipment));
+    return shipments.map((shipment, index) =>
+        structureHTML
+            .replace(PLACEHOLDER, shipment)
+            .replaceAll(ORDER_PLACEHOLDER, shipments.length > 1 ? ` #${index + 1}/${shipments.length}` : "")
+    );
 }
 
 function isFullDate(text: string): boolean {
@@ -217,6 +292,10 @@ function getDeliveryText(itemHTML: string) {
     return text;
 }
 function getDeliveryDate(itemHTML: string): number {
+    let shipment = splitItemIntoShipments(itemHTML);
+    return Math.max(...shipment.map(getDeliveryDateBase));
+}
+function getDeliveryDateBase(itemHTML: string): number {
     let text = getDeliveryText(itemHTML) || "";
     let range = parseDeliveryTime(text);
     if (!isFullDate(text)) {
@@ -348,8 +427,6 @@ function parseDeliveryTime(input: string): DateRange {
             date.setHours(hour, minute, second);
         }
     }
-
-    console.log(`Parsed "${input}" to ${date}`);
 
     return {
         start: date
