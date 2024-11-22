@@ -100,37 +100,6 @@ function rerenderItems() {
     sort(allItems, x => -getDeliveryDate(x));
     sort(allItems, x => wasDelivered(x) ? 1 : 0);
 
-    allItems = allItems.map(item => {
-        if (!wasDelivered(item)) {
-            //if (true) {
-            let dom = new DOMParser().parseFromString(item, "text/html");
-            let shipmentNode = dom.querySelector(".delivery-box .a-row") || dom.querySelector(".a-box.shipment .a-row .a-row");
-            if (shipmentNode) {
-                shipmentNode.setAttribute("style", "display: flex; align-items: center; ");
-                let deliveryTime = getDeliveryDate(item);
-                let daysExact = (deliveryTime - Date.now()) / (1000 * 60 * 60 * 24);
-                let newUI = document.createElement("span");
-                newUI.className = "a-size-mini";
-                newUI.textContent = `(${daysExact.toFixed(1)} days)`;
-                newUI.title = new Date(deliveryTime).toLocaleString();
-                newUI.setAttribute("style", "margin-left: 10px;");
-                shipmentNode.appendChild(newUI);
-            }
-            dom.body.children[0].classList.add("status-not-delivered");
-
-            item = dom.body.innerHTML;
-        } else {
-            let deliveryDate = getDeliveryDate(item);
-            // If it was within a day, status-delivered-today
-            if (Math.abs(deliveryDate - Date.now()) < 1000 * 60 * 60 * 24) {
-                let dom = new DOMParser().parseFromString(item, "text/html");
-                dom.body.children[0].classList.add("status-delivered-today");
-                item = dom.body.innerHTML;
-            }
-        }
-        return item;
-    });
-
     let flatIds = allItems.map(getOrderNumber);
     let newIds = new Set(flatIds);
     let existingOrderCards = Array.from(document.querySelectorAll(".order-card.js-order-card"));
@@ -154,6 +123,33 @@ function rerenderItems() {
         div = div.children[0] as any;
         curAnchor.after(div);
         curAnchor = div;
+    }
+
+    // Set flags
+    for (let card of document.querySelectorAll(".order-card.js-order-card")) {
+        let item = card.outerHTML;
+        if (!wasDelivered(item)) {
+            let shipmentNode = card.querySelector(".delivery-box .a-row") || card.querySelector(".a-box.shipment .a-row .a-row");
+            if (shipmentNode && !shipmentNode.querySelector("#delivery-time")) {
+                shipmentNode.setAttribute("style", "display: flex; align-items: center; ");
+                let deliveryTime = getDeliveryDate(item);
+                let daysExact = (deliveryTime - Date.now()) / (1000 * 60 * 60 * 24);
+                let newUI = document.createElement("span");
+                newUI.id = "delivery-time";
+                newUI.className = "a-size-mini";
+                newUI.textContent = `(${daysExact.toFixed(1)} days)`;
+                newUI.title = new Date(deliveryTime).toLocaleString();
+                newUI.setAttribute("style", "margin-left: 10px;");
+                shipmentNode.appendChild(newUI);
+            }
+            card.classList.add("status-not-delivered");
+        } else {
+            let deliveryDate = getDeliveryDate(item);
+            // If it was within a day, status-delivered-today
+            if (Math.abs(deliveryDate - Date.now()) < 1000 * 60 * 60 * 24) {
+                card.classList.add("status-delivered-today");
+            }
+        }
     }
 
     // Reorder orders
