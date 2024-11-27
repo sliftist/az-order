@@ -4,6 +4,9 @@ let itemByOrderNumber = new Map<string, string>();
 let anchor: HTMLElement | undefined;
 
 export async function addMorePages() {
+    debugger;
+    parseDeliveryTime("Arriving tomorrow by 10pm");
+
     let betterStyles = `
         .js-yo-main-content {
             display: flex;
@@ -363,6 +366,7 @@ function parseDeliveryTime(input: string): DateRange {
     dateStr = dateStr.replace("12 pm", "12:00:00").replace("12 am", "00:00:00");
     for (let i = 1; i <= 11; i++) {
         dateStr = dateStr.replace(`${i} pm`, `${i + 12}:00:00`).replace(` ${i} am`, ` ${i}:00:00`);
+        dateStr = dateStr.replace(`${i}pm`, `${i + 12}:00:00`).replace(` ${i}am`, ` ${i}:00:00`);
     }
     dateStr = dateStr.split(" ").filter(x => !["now", "arriving", "today", "expected", "by", "was", "delivered"].includes(x)).join(" ");
 
