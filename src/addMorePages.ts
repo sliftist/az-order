@@ -4,9 +4,6 @@ let itemByOrderNumber = new Map<string, string>();
 let anchor: HTMLElement | undefined;
 
 export async function addMorePages() {
-    debugger;
-    parseDeliveryTime("Arriving tomorrow by 10pm");
-
     let betterStyles = `
         .js-yo-main-content {
             display: flex;
@@ -362,12 +359,7 @@ function parseDeliveryTime(input: string): DateRange {
     // Take the last part of any range
     let dateStr = input;
     dateStr = dateStr.split(" - ").at(-1)!.trim();
-    // Replace "12 pm" with "12:00:00", etc
-    dateStr = dateStr.replace("12 pm", "12:00:00").replace("12 am", "00:00:00");
-    for (let i = 1; i <= 11; i++) {
-        dateStr = dateStr.replace(`${i} pm`, `${i + 12}:00:00`).replace(` ${i} am`, ` ${i}:00:00`);
-        dateStr = dateStr.replace(`${i}pm`, `${i + 12}:00:00`).replace(` ${i}am`, ` ${i}:00:00`);
-    }
+    dateStr = dateStr.replaceAll(" pm", "pm").replaceAll(" am", "am");
     dateStr = dateStr.split(" ").filter(x => !["now", "arriving", "today", "expected", "by", "was", "delivered"].includes(x)).join(" ");
 
     let date = new Date();
@@ -394,7 +386,7 @@ function parseDeliveryTime(input: string): DateRange {
         return ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].some(x => str.includes(x));
     }
     function isHour(str: string) {
-        return str.includes(":00");
+        return str.endsWith("pm") || str.endsWith("am");
     }
     function isDay(str: string) {
         return str.length > 0 && str.length <= 2 && !Number.isNaN(+str);
@@ -423,8 +415,12 @@ function parseDeliveryTime(input: string): DateRange {
             date.setDate(+part);
         }
         if (isHour(part)) {
+            let amPM = part.slice(-2);
+            part = part.slice(0, -"pm".length);
             let [hour, minute, second] = part.split(":").map(x => +x);
-            date.setHours(hour, minute, second);
+            if (hour === 12) hour = 0;
+            if (amPM === "pm") hour += 12;
+            date.setHours(hour, minute || 0, second || 0);
         }
     }
 
