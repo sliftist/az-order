@@ -295,9 +295,9 @@ function getDeliveryDate(itemHTML: string): number {
 }
 function getDeliveryDateBase(itemHTML: string): number {
     let text = getDeliveryText(itemHTML) || "";
-    let range = parseDeliveryTime(text);
+    let orderPlacedTime = +new Date(parseOrderPlacedText(itemHTML) || "");
+    let range = parseDeliveryTime(text, new Date(orderPlacedTime || Date.now()));
     if (!isFullDate(text)) {
-        let orderPlacedTime = +new Date(parseOrderPlacedText(itemHTML) || "");
         if (orderPlacedTime) {
             let orderPlacedYear = new Date(orderPlacedTime).getFullYear();
             function fixYear(date: Date) {
@@ -307,7 +307,7 @@ function getDeliveryDateBase(itemHTML: string): number {
                 // Really any negative numbers means we should increase the year by 1.
                 //  But maybe it could be off a bit for a legitimate reason? Anyways,
                 //  this is mostly for cases when the year wraps around, so even -6 months would be fine.
-                if (delta < -timeInDay * 3) {
+                if (delta < -timeInDay * 7) {
                     date.setFullYear(orderPlacedYear + 1);
                 }
             }
@@ -315,11 +315,8 @@ function getDeliveryDateBase(itemHTML: string): number {
             if (range.end) fixYear(range.end);
         }
     }
-    if (Number.isNaN(range.start.getTime())) {
-        text = parseOrderPlacedText(itemHTML) || "";
-        if (text) {
-            range = parseDeliveryTime(text);
-        }
+    if (!range.start.getTime()) {
+        range = { start: new Date(orderPlacedTime || Date.now()) };
     }
 
     return (range.end || range.start).getTime();
@@ -341,7 +338,7 @@ interface DateRange {
     end?: Date;
 }
 
-function parseDeliveryTime(input: string): DateRange {
+function parseDeliveryTime(input: string, fallbackDate: Date): DateRange {
     input = input.trim().toLowerCase();
 
     // Split "* 12 PM - 3 PM" into "* 12 PM" and "* 3 PM"
@@ -351,8 +348,8 @@ function parseDeliveryTime(input: string): DateRange {
         let firstPart = input.split(" - ")[0];
         let secondPart = prefix + " " + input.split(" - ")[1];
         return {
-            start: parseDeliveryTime(firstPart).start,
-            end: parseDeliveryTime(secondPart).start
+            start: parseDeliveryTime(firstPart, fallbackDate).start,
+            end: parseDeliveryTime(secondPart, fallbackDate).start
         };
     }
 
@@ -367,17 +364,20 @@ function parseDeliveryTime(input: string): DateRange {
     dateStr = dateStr.split(" ").filter(x => !["now", "arriving", "today", "expected", "by", "was", "delivered"].includes(x)).join(" ");
 
     let date = new Date();
+    let foundDateParts = 0;
 
     const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     // Remove day, and add offset later
     for (let dayOfWeek of daysOfWeek) {
         if (!dateStr.includes(dayOfWeek)) continue;
+        foundDateParts++;
         // Always assume it's the future
         let dayOffset = (daysOfWeek.indexOf(dayOfWeek) - today.getDay() + 7) % 7;
         date = new Date(date.getTime() + dayOffset * 1000 * 60 * 60 * 24);
         dateStr = dateStr.replace(dayOfWeek, "");
     }
     if (dateStr.includes("tomorrow")) {
+        foundDateParts++;
         // Apparently, at 12 am, amazon doesn't count it as being tomorrow. Maybe?
         date = new Date(date.getTime() + 1000 * 60 * 60 * 22);
         dateStr = dateStr.replace("tomorrow", "");
@@ -410,13 +410,16 @@ function parseDeliveryTime(input: string): DateRange {
         }
         if (isYear(part)) {
             date.setFullYear(+part);
+            foundDateParts++;
         }
         if (isMonth(part)) {
             let mon = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"].findIndex(x => part.includes(x));
             date.setMonth(mon);
+            foundDateParts++;
         }
         if (isDay(part)) {
             date.setDate(+part);
+            foundDateParts++;
         }
         if (isHour(part)) {
             let amPM = part.slice(-2);
@@ -425,7 +428,12 @@ function parseDeliveryTime(input: string): DateRange {
             if (hour === 12) hour = 0;
             if (amPM === "pm") hour += 12;
             date.setHours(hour, minute || 0, second || 0);
+            foundDateParts++;
         }
+    }
+
+    if (foundDateParts === 0) {
+        date = fallbackDate;
     }
 
     return {
