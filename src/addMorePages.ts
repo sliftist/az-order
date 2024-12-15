@@ -56,7 +56,9 @@ export async function addMorePages() {
 
     loadNewPage(document.body.innerHTML);
 
-    let pagesToLoad = 10;
+    // Amazon might throttle us, but... if someone orders 300 orders in a year,
+    //  Amazon really shouldn't be limiting how many order pages they can load.
+    let pagesToLoad = 30;
     for (let period of periodsToCheck) {
         let index = 0;
         while (true) {
@@ -295,20 +297,22 @@ function getDeliveryDateBase(itemHTML: string): number {
     let text = getDeliveryText(itemHTML) || "";
     let range = parseDeliveryTime(text);
     if (!isFullDate(text)) {
-        // If it is over 6 months, we probably wrapped around, and should just use the order time
-        let timeToDeliver = Date.now() - range.start.getTime();
-        let timeInMonth = 1000 * 60 * 60 * 24 * 30;
-        if (
-            // Instead of being delivered over 3 months ago, it is probably going to be
-            //      delivered in the next year
-            timeToDeliver < -timeInMonth * 3
-            // If it is over 9 months, it is likely actually delivered in the previous year
-            || timeToDeliver > timeInMonth * 9
-        ) {
-            text = parseOrderPlacedText(itemHTML) || "";
-            if (text) {
-                range = parseDeliveryTime(text);
+        let orderPlacedTime = +new Date(parseOrderPlacedText(itemHTML) || "");
+        if (orderPlacedTime) {
+            let orderPlacedYear = new Date(orderPlacedTime).getFullYear();
+            function fixYear(date: Date) {
+                date.setFullYear(orderPlacedYear);
+                let delta = date.getTime() - orderPlacedTime;
+                let timeInDay = 1000 * 60 * 60 * 24;
+                // Really any negative numbers means we should increase the year by 1.
+                //  But maybe it could be off a bit for a legitimate reason? Anyways,
+                //  this is mostly for cases when the year wraps around, so even -6 months would be fine.
+                if (delta < -timeInDay * 3) {
+                    date.setFullYear(orderPlacedYear + 1);
+                }
             }
+            fixYear(range.start);
+            if (range.end) fixYear(range.end);
         }
     }
     if (Number.isNaN(range.start.getTime())) {
