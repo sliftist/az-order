@@ -382,6 +382,9 @@ function parseDeliveryTime(input: string, fallbackDate: Date): DateRange {
         date = new Date(date.getTime() + 1000 * 60 * 60 * 22);
         dateStr = dateStr.replace("tomorrow", "");
     }
+    if (dateStr.includes("today")) {
+        foundDateParts++;
+    }
 
     function isYear(str: string) {
         return str.length === 4 && !Number.isNaN(+str);

@@ -1,6 +1,6 @@
 {
     "name": "Amazing Re Order",
-    "version": "0.2.6",
+    "version": "0.2.7",
     "description": "Re-order amazon orders by delivery date.",
     "homepage_url": "https://github.com/sliftist/az-order",
     "manifest_version": 3,
