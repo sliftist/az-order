@@ -304,10 +304,10 @@ function getDeliveryDateBase(itemHTML: string): number {
                 date.setFullYear(orderPlacedYear);
                 let delta = date.getTime() - orderPlacedTime;
                 let timeInDay = 1000 * 60 * 60 * 24;
-                // Really any negative numbers means we should increase the year by 1.
-                //  But maybe it could be off a bit for a legitimate reason? Anyways,
-                //  this is mostly for cases when the year wraps around, so even -6 months would be fine.
-                if (delta < -timeInDay * 7) {
+                // The cutoff seems to be 100 days, at which point the "delivered" text disappears
+                //  (which is good, because it doesn't have a year, so if it was kept forever we would
+                //  have to deduce the time based on the ordered date)
+                if (delta < -timeInDay * 120) {
                     date.setFullYear(orderPlacedYear + 1);
                 }
             }
@@ -356,15 +356,18 @@ function parseDeliveryTime(input: string, fallbackDate: Date): DateRange {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    let date = new Date();
+    let foundDateParts = 0;
+
     // Helper function to parse date string
     // Take the last part of any range
     let dateStr = input;
     dateStr = dateStr.split(" - ").at(-1)!.trim();
     dateStr = dateStr.replaceAll(" pm", "pm").replaceAll(" am", "am");
+    if (dateStr.includes("today")) {
+        foundDateParts++;
+    }
     dateStr = dateStr.split(" ").filter(x => !["now", "arriving", "today", "expected", "by", "was", "delivered"].includes(x)).join(" ");
-
-    let date = new Date();
-    let foundDateParts = 0;
 
     const daysOfWeek = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
     // Remove day, and add offset later
@@ -381,9 +384,6 @@ function parseDeliveryTime(input: string, fallbackDate: Date): DateRange {
         // Apparently, at 12 am, amazon doesn't count it as being tomorrow. Maybe?
         date = new Date(date.getTime() + 1000 * 60 * 60 * 22);
         dateStr = dateStr.replace("tomorrow", "");
-    }
-    if (dateStr.includes("today")) {
-        foundDateParts++;
     }
 
     function isYear(str: string) {
